@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module external.linked.project.id="root [file:/C:/typesafe/project/eTuan4Code/DispatcherService/]" external.linked.project.path="$MODULE_DIR$/../../.." external.root.project.path="$MODULE_DIR$/../../.." external.system.id="SBT" type="JAVA_MODULE" version="4">
+  <component name="DisplayModuleName">
+    <option name="name" value="DispatcherService" />
+  </component>
+  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_22">
+    <output url="file://$MODULE_DIR$/../../../target/scala-3.4.2/classes" />
+    <output-test url="file://$MODULE_DIR$/../../../target/scala-3.4.2/test-classes" />
+    <exclude-output />
+    <content url="file://$MODULE_DIR$/../../..">
+      <sourceFolder url="file://$MODULE_DIR$/../../../src/main/scala" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/../../../target" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="sbt: scala-sdk-3.4.2" level="project" />
+    <orderEntry type="library" name="sbt: org.scala-lang:scala3-library_3:3.4.2:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.http4s:http4s-dsl_3:1.0.0-M44:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.http4s:http4s-ember-server_3:1.0.0-M44:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.http4s:http4s-ember-client_3:1.0.0-M44:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.http4s:http4s-circe_3:1.0.0-M44:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.circe:circe-core_3:0.14.10:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.circe:circe-generic_3:0.14.10:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.circe:circe-parser_3:0.14.10:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.circe:circe-yaml_3:1.15.0:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.typelevel:log4cats-core_3:2.7.0:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.typelevel:log4cats-slf4j_3:2.7.0:jar" level="project" />
+    <orderEntry type="library" name="sbt: ch.qos.logback:logback-classic:1.5.16:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.softwaremill.sttp.client3:core_3:3.10.3:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.softwaremill.sttp.client3:async-http-client-backend-cats_3:3.10.3:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.softwaremill.sttp.client3:fs2_3:3.10.3:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.softwaremill.sttp.client3:circe_3:3.10.3:jar" level="project" />
+    <orderEntry type="library" name="sbt: co.fs2:fs2-core_3:3.11.0:jar" level="project" />
+    <orderEntry type="library" name="sbt: co.fs2:fs2-io_3:3.11.0:jar" level="project" />
+    <orderEntry type="library" name="sbt: joda-time:joda-time:2.12.7:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.eclipse.jgit:org.eclipse.jgit:5.13.0.202109080827-r:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.zaxxer:HikariCP:5.1.0:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.postgresql:postgresql:42.7.2:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.fasterxml.jackson.core:jackson-databind:2.15.2:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.fasterxml.jackson.module:jackson-module-scala_3:2.15.2:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.scala-lang:scala-library:2.13.12:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.http4s:http4s-core_3:1.0.0-M44:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.http4s:http4s-ember-core_3:1.0.0-M44:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.http4s:http4s-server_3:1.0.0-M44:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.http4s:http4s-client_3:1.0.0-M44:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.typelevel:keypool_3:0.4.10:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.http4s:http4s-jawn_3:1.0.0-M44:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.circe:circe-jawn_3:0.14.10:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.circe:circe-numbers_3:0.14.10:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.typelevel:cats-core_3:2.12.0:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.circe:circe-yaml-common_3:1.15.0:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.yaml:snakeyaml:2.0:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.typelevel:cats-effect-std_3:3.5.7:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.slf4j:slf4j-api:2.0.16:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.typelevel:cats-effect_3:3.5.4:jar" level="project" />
+    <orderEntry type="library" name="sbt: ch.qos.logback:logback-core:1.5.16:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.softwaremill.sttp.model:core_3:1.7.11:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.softwaremill.sttp.shared:core_3:1.3.22:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.softwaremill.sttp.shared:ws_3:1.3.22:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.softwaremill.sttp.client3:async-http-client-backend_3:3.10.3:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.softwaremill.sttp.client3:cats_3:3.10.3:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.softwaremill.sttp.shared:fs2_3:1.3.22:jar" level="project" />
+    <orderEntry type="library" name="sbt: co.fs2:fs2-reactive-streams_3:3.11.0:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.softwaremill.sttp.client3:json-common_3:3.10.3:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.scodec:scodec-bits_3:1.1.38:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.comcast:ip4s-core_3:3.6.0:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.googlecode.javaewah:JavaEWAH:1.1.12:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.checkerframework:checker-qual:3.42.0:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.fasterxml.jackson.core:jackson-annotations:2.15.2:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.fasterxml.jackson.core:jackson-core:2.15.2:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.thoughtworks.paranamer:paranamer:2.8:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.typelevel:case-insensitive_3:1.4.2:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.typelevel:cats-parse_3:1.0.0:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.typelevel:literally_3:1.1.0:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.typelevel:vault_3:3.6.0:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.twitter:hpack:1.0.2:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.http4s:http4s-crypto_3:0.2.4:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.typelevel:jawn-fs2_3:2.4.0:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.typelevel:jawn-parser_3:1.6.0:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.typelevel:cats-kernel_3:2.12.0:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.typelevel:cats-effect-kernel_3:3.5.7:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.asynchttpclient:async-http-client:2.12.4:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.reactivestreams:reactive-streams:1.0.4:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.asynchttpclient:async-http-client-netty-utils:2.12.4:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-codec-http:4.1.60.Final:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-handler:4.1.60.Final:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-codec-socks:4.1.60.Final:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-handler-proxy:4.1.60.Final:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.typesafe.netty:netty-reactive-streams:2.0.4:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.sun.activation:jakarta.activation:1.2.2:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-buffer:4.1.60.Final:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-common:4.1.60.Final:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-transport:4.1.60.Final:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-codec:4.1.60.Final:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-resolver:4.1.60.Final:jar" level="project" />
+  </component>
+</module>
