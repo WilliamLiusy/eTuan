@@ -93,7 +93,7 @@ case class UserRegisterPlanner(
 
     // Determine `address` and `status` based on userType
     val address: Option[String] = if (userType == UserType.Merchant) Some("") else None
-    val status: Option[RiderStatus] = if (userType == UserType.Rider) Some(RiderStatus.Idle) else None
+    val status: Option[RiderStatus] = Some(RiderStatus.Idle)
 
     val userInfo = UserInfo(
       userID = userID,
