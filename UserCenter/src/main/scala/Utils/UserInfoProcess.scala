@@ -84,24 +84,24 @@ case object UserInfoProcess {
   
     val insertSql = s"""
       INSERT INTO ${schemaName}.user_session_table (user_id, user_token, generate_time, expire_time)
-      VALUES (?, ?, ?, ?)
+      VALUES (?, ?, TO_TIMESTAMP(?), TO_TIMESTAMP(?))
     """.stripMargin
     val insertParams = List(
       SqlParameter("String", userID),
       SqlParameter("String", newUserToken),
-      SqlParameter("Long", generateTime.getMillis.toString),
-      SqlParameter("Long", expireTime.getMillis.toString)
+      SqlParameter("Double", (generateTime.getMillis.toDouble/1000).toString),
+      SqlParameter("Double", (expireTime.getMillis.toDouble/1000).toString)
     )
   
     val updateSql = s"""
       UPDATE ${schemaName}.user_session_table
-      SET user_token = ?, generate_time = ?, expire_time = ?
+      SET user_token = ?, generate_time = TO_TIMESTAMP(?), expire_time = TO_TIMESTAMP(?)
       WHERE user_id = ?
     """.stripMargin
     val updateParams = List(
       SqlParameter("String", newUserToken),
-      SqlParameter("Long", generateTime.getMillis.toString),
-      SqlParameter("Long", expireTime.getMillis.toString),
+      SqlParameter("Double", (generateTime.getMillis.toDouble/1000).toString),
+      SqlParameter("Double", (expireTime.getMillis.toDouble/1000).toString),
       SqlParameter("String", userID)
     )
   
