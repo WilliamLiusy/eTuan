@@ -121,10 +121,7 @@ VALUES (?, ?)
   // 保存用户的基础信息到 UserInfoTable
   private def saveUserInfo(userID: String)(using PlanContext): IO[Unit] = {
     val createTime = DateTime.now
-    val status = userType match {
-      case UserType.Rider => Some(RiderStatus.Idle)
-      case _ => None
-    }
+    val status = Some(RiderStatus.OffDuty)
     val userInfo = UserInfo(
       userID = userID,
       name = name,
