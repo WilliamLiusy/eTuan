@@ -24,7 +24,8 @@ import Objects.UserCenter.UserType
  * @param name: String (用户名)
  * @param contactNumber: String (联系方式)
  * @param password: String (密码)
- * @param userType: UserType:1012 (用户类型 (Customer/Merchant/Rider))
+ * @param userType: UserType (用户类型 (Customer/Merchant/Rider))
+ * @param address: String (地址)
  * @return userToken: String (用户令牌)
  */
 
@@ -32,7 +33,8 @@ case class UserRegister(
   name: String,
   contactNumber: String,
   password: String,
-  userType: UserType
+  userType: UserType,
+  address: String
 ) extends API[String](UserCenterCode)
 
 
