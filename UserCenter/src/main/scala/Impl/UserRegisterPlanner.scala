@@ -108,7 +108,7 @@ case class UserRegisterPlanner(
     val sql =
       s"""
         INSERT INTO ${schemaName}.user_info_table (user_id, name, contact_number, address, user_type, status, create_time)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, TO_TIMESTAMP(?))
       """.stripMargin
 
     val params = List(
@@ -118,7 +118,7 @@ case class UserRegisterPlanner(
       SqlParameter("String", userInfo.address.getOrElse("")),
       SqlParameter("String", userInfo.userType.toString),
       SqlParameter("String", userInfo.status.map(_.toString).getOrElse("None")),
-      SqlParameter("Long", userInfo.createTime.getMillis.toString)
+      SqlParameter("Double", (userInfo.createTime.getMillis.toDouble/1000).toString)
     )
 
     writeDB(sql, params).void
