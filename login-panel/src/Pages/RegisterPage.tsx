@@ -49,7 +49,8 @@ const RegisterPage: React.FC = () => {
                 name.trim(),
                 contactNumber.trim(),
                 password,
-                userType
+                userType,
+                address.trim()
             );
 
             registerMessage.send(
@@ -77,12 +78,55 @@ const RegisterPage: React.FC = () => {
                     setLoading(false);
                 },
                 (error: any) => {
-                    setError(error?.message || '注册失败，请稍后重试');
+                    // 处理不同类型的错误信息
+                    console.log('注册错误详情:', error); // 调试日志
+                    let errorMessage = '注册失败，请稍后重试';
+
+                    if (error?.message) {
+                        const msg = error.message.toLowerCase();
+                        console.log('错误信息(小写):', msg); // 调试日志
+
+                        if (msg.includes('duplicate') || msg.includes('exist') || msg.includes('重复') ||
+                            msg.includes('用户名重复') || msg.includes('已存在') || msg.includes('username') && msg.includes('duplicate')) {
+                            errorMessage = '用户名或联系方式已存在，请使用其他信息';
+                        } else if (msg.includes('invalid') || msg.includes('format') || msg.includes('格式')) {
+                            errorMessage = '输入信息格式不正确，请检查后重新输入';
+                        } else if (msg.includes('network') || msg.includes('connection') || msg.includes('网络')) {
+                            errorMessage = '网络连接失败，请检查网络后重试';
+                        } else if (msg.includes('timeout') || msg.includes('超时')) {
+                            errorMessage = '请求超时，请稍后重试';
+                        } else {
+                            // 直接显示服务器返回的错误信息
+                            errorMessage = error.message;
+                        }
+                    } else if (typeof error === 'string') {
+                        // 如果错误直接是字符串
+                        const msg = error.toLowerCase();
+                        if (msg.includes('重复') || msg.includes('用户名重复') || msg.includes('已存在')) {
+                            errorMessage = '用户名或联系方式已存在，请使用其他信息';
+                        } else {
+                            errorMessage = error;
+                        }
+                    }
+
+                    setError(errorMessage);
                     setLoading(false);
                 }
             );
-        } catch (err) {
-            setError('网络错误，请稍后重试');
+        } catch (err: any) {
+            let errorMessage = '网络错误，请稍后重试';
+
+            if (err?.message) {
+                if (err.message.includes('fetch') || err.message.includes('network')) {
+                    errorMessage = '无法连接到服务器，请检查网络连接';
+                } else if (err.message.includes('timeout')) {
+                    errorMessage = '连接超时，请稍后重试';
+                } else {
+                    errorMessage = `注册失败：${err.message}`;
+                }
+            }
+
+            setError(errorMessage);
             console.error('Register error:', err);
             setLoading(false);
         }

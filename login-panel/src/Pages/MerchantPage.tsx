@@ -82,9 +82,9 @@ const MerchantPage: React.FC = () => {
 
     const loadProducts = async () => {
         const token = getUserToken();
-        if (token && userInfo?.id) {
+        if (token && userInfo?.userID) {
             setLoading(true);
-            const getProductsMsg = new FetchProductsByMerchantIDMessage(userInfo.id);
+            const getProductsMsg = new FetchProductsByMerchantIDMessage(userInfo.userID);
             getProductsMsg.send(
                 (productsStr: string) => {
                     try {

@@ -103,7 +103,7 @@ const RiderPage: React.FC = () => {
                         const orderList = JSON.parse(ordersStr);
                         // 过滤出分配给当前骑手的订单
                         const myAssignedOrders = orderList.filter((order: OrderInfo) =>
-                            order.riderID === userInfo?.id
+                            order.riderID === userInfo?.userID
                         );
                         setMyOrders(myAssignedOrders);
                     } catch (err) {
@@ -118,7 +118,7 @@ const RiderPage: React.FC = () => {
     };
 
     const handleAcceptOrder = async (orderID: string) => {
-        if (!userInfo?.id) {
+        if (!userInfo?.userID) {
             setError('用户信息不完整');
             return;
         }
@@ -126,7 +126,7 @@ const RiderPage: React.FC = () => {
         setLoading(true);
 
         try {
-            const updateRiderMsg = new UpdateRider(orderID, userInfo.id);
+            const updateRiderMsg = new UpdateRider(orderID, userInfo.userID);
             updateRiderMsg.send(
                 (result: string) => {
                     setSuccess('接单成功！');

@@ -106,6 +106,7 @@ const OrderPage: React.FC = () => {
     const loadProducts = async (merchantId: string) => {
         setLoading(true);
         const getProductsMsg = new FetchProductsByMerchantIDMessage(merchantId);
+        console.log('请求商品列表，商家ID:', merchantId);
         getProductsMsg.send(
             (productsStr: string) => {
                 try {
@@ -146,7 +147,7 @@ const OrderPage: React.FC = () => {
 
     const handleMerchantSelect = (merchant: any) => {
         setSelectedMerchant(merchant);
-        loadProducts(merchant.id);
+        loadProducts(merchant.userID);
         setTabValue(1); // 切换到商品标签页
     };
 
@@ -211,7 +212,7 @@ const OrderPage: React.FC = () => {
 
             const createOrderMsg = new CreateOrder(
                 token || '',
-                selectedMerchant.id,
+                selectedMerchant.userID,
                 productList,
                 '默认地址' // 这里应该让用户输入地址
             );
@@ -296,7 +297,7 @@ const OrderPage: React.FC = () => {
                 ) : (
                     <Grid container spacing={3}>
                         {merchants.map((merchant) => (
-                            <Grid item xs={12} sm={6} md={4} key={merchant.id}>
+                            <Grid item xs={12} sm={6} md={4} key={merchant.userID}>
                                 <Card>
                                     <CardContent>
                                         <Typography variant="h6">{merchant.name}</Typography>
