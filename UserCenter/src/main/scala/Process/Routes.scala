@@ -17,6 +17,7 @@ import scala.collection.concurrent.TrieMap
 import Common.Serialize.CustomColumnTypes.*
 import Impl.GetAllIdleRidersPlanner
 import Impl.GetAllMerchantsPlanner
+import Impl.UserLoginPlanner
 import Impl.GetUserInfoByTokenPlanner
 import Impl.UpdateStatusPlanner
 import Impl.UserRegisterPlanner
@@ -25,8 +26,6 @@ import org.joda.time.DateTime
 import org.http4s.circe.*
 import java.util.UUID
 import Common.Serialize.CustomColumnTypes.{decodeDateTime,encodeDateTime}
-//import io.circe.generic.auto._ // 确保这行在作用域内
-//import io.circe.parser.decode
 
 object Routes:
   val projects: TrieMap[String, Topic[IO, String]] = TrieMap.empty
@@ -44,6 +43,13 @@ object Routes:
         IO(
           decode[GetAllMerchantsPlanner](str) match
             case Left(err) => err.printStackTrace(); throw new Exception(s"Invalid JSON for GetAllMerchants[${err.getMessage}]")
+            case Right(value) => value.fullPlan.map(_.asJson.toString)
+        ).flatten
+       
+      case "UserLogin" =>
+        IO(
+          decode[UserLoginPlanner](str) match
+            case Left(err) => err.printStackTrace(); throw new Exception(s"Invalid JSON for UserLogin[${err.getMessage}]")
             case Right(value) => value.fullPlan.map(_.asJson.toString)
         ).flatten
        

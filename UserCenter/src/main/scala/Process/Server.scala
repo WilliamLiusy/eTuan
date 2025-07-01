@@ -12,8 +12,7 @@ import org.typelevel.log4cats.slf4j.{Slf4jFactory, Slf4jLogger}
 
 import java.nio.channels.ClosedChannelException
 import scala.concurrent.duration.*
-//import io.circe.generic.auto._ // 确保这行在作用域内
-//import io.circe.parser.decode
+
 
 object Server extends IOApp:
   given logger: Logger[IO] = Slf4jLogger.getLogger[IO]

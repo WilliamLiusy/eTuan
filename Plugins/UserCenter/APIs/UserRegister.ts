@@ -4,7 +4,8 @@
  * @param name: String (用户名)
  * @param contactNumber: String (联系方式)
  * @param password: String (密码)
- * @param userType: UserType:1012 (用户类型 (Customer/Merchant/Rider))
+ * @param userType: UserType (用户类型 (Customer/Merchant/Rider))
+ * @param address: String (地址)
  * @return userToken: String (用户令牌)
  */
 import { TongWenMessage } from 'Plugins/TongWenAPI/TongWenMessage'
@@ -16,7 +17,8 @@ export class UserRegister extends TongWenMessage {
         public  name: string,
         public  contactNumber: string,
         public  password: string,
-        public  userType: UserType
+        public  userType: UserType,
+        public  address: string
     ) {
         super()
     }
