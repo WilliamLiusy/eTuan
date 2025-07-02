@@ -830,3 +830,150 @@ def test_remove_product_with_invalid_token():
     assert result == "Unauthorized", f"Expected 'Unauthorized', got {result}"
 
     print("✅ 使用非法 token 删除商品失败")
+
+def create_order(customer_token, merchant_id, product_list, destination_address):
+    """
+    调用 CreateOrder 接口
+    :param customer_token: 顾客身份令牌
+    :param merchant_id: 商家ID
+    :param product_list: 商品信息列表（List[ProductInfo]）
+    :param destination_address: 送达地址
+    :return: Response 对象
+    """
+    return call_api(ORDER_SERVICE, "CreateOrder",
+                    customerToken=customer_token,
+                    merchantID=merchant_id,
+                    productList=product_list,
+                    destinationAddress=destination_address)
+
+def test_create_order_success():
+    # 1. 注册并登录顾客
+    customer = register_user(user_type=CUSTOMER)
+    name = customer["name"]
+    password = customer["password"]
+    login_response = call_api(USER_SERVICE, "UserLogin", name=name, password=password)
+    assert login_response.status_code == 200
+    customer_token = login_response.json()
+
+    # 2. 注册并登录商家
+    merchant = register_user(user_type=MERCHANT, address="上海市南京东路1号")
+    merchant_name = merchant["name"]
+    merchant_password = merchant["password"]
+    merchant_login_response = call_api(USER_SERVICE, "UserLogin", name=merchant_name, password=merchant_password)
+    assert merchant_login_response.status_code == 200
+    merchant_token = merchant_login_response.json()
+
+    # 获取商家ID
+    merchant_info = get_user_info_by_token(merchant_token).json()
+    merchant_id = merchant_info["userID"]
+
+    # 3. 添加商品到商家
+    product_name = "招牌奶茶"
+    add_product(merchant_token, product_name, 15.9, "每日现做")
+    fetch_response = fetch_products_by_merchant_id(merchant_id)
+    assert fetch_response.status_code == 200
+    products = fetch_response.json()
+    assert len(products) >= 1
+    product_info = products[0]
+
+    # 4. 构建订单商品列表
+    product_list = [{
+        "productID": product_info["productID"],
+        "merchantID": product_info["merchantID"],
+        "name": product_info["name"],
+        "price": product_info["price"],
+        "description": product_info["description"]
+    }]
+
+    # 5. 创建订单
+    destination_address = "上海市人民广场B座"
+    order_response = create_order(customer_token, merchant_id, product_list, destination_address)
+    assert order_response.status_code == 200
+    order_result = order_response.json()
+    assert isinstance(order_result, str) and len(order_result) > 0, "Expected non-empty order ID"
+
+    print("✅ 顾客成功创建订单")
+
+def test_create_order_with_empty_product_list_should_fail():
+    # 1. 注册并登录顾客
+    customer = register_user(user_type=CUSTOMER)
+    name = customer["name"]
+    password = customer["password"]
+    login_response = call_api(USER_SERVICE, "UserLogin", name=name, password=password)
+    assert login_response.status_code == 200
+    customer_token = login_response.json()
+
+    # 2. 注册并登录商家
+    merchant = register_user(user_type=MERCHANT, address="上海市南京东路1号")
+    merchant_name = merchant["name"]
+    merchant_password = merchant["password"]
+    merchant_login_response = call_api(USER_SERVICE, "UserLogin", name=merchant_name, password=merchant_password)
+    assert merchant_login_response.status_code == 200
+    merchant_token = merchant_login_response.json()
+
+    # 获取商家ID
+    merchant_info = get_user_info_by_token(merchant_token).json()
+    merchant_id = merchant_info["userID"]
+
+    # 3. 商品列表为空
+    product_list = []
+
+    # 4. 尝试创建订单
+    destination_address = "上海市人民广场B座"
+    order_response = create_order(customer_token, merchant_id, product_list, destination_address)
+    assert order_response.status_code == 400
+
+    print("✅ 商品列表为空时创建订单失败（预期行为）")
+
+def test_create_order_with_nonexistent_merchant_id_should_fail():
+    # 1. 注册并登录顾客
+    customer = register_user(user_type=CUSTOMER)
+    name = customer["name"]
+    password = customer["password"]
+    login_response = call_api(USER_SERVICE, "UserLogin", name=name, password=password)
+    assert login_response.status_code == 200
+    customer_token = login_response.json()
+
+    # 2. 使用一个不存在的商家ID
+    nonexistent_merchant_id = "nonexistent_merchant_id_123"
+
+    # 3. 构造空商品列表
+    product_list = []
+
+    # 4. 尝试创建订单
+    destination_address = "上海市人民广场B座"
+    order_response = create_order(customer_token, nonexistent_merchant_id, product_list, destination_address)
+    assert order_response.status_code == 400
+
+    print("✅ 使用不存在的商家ID创建订单失败（预期行为）")
+
+def test_create_order_by_non_customer_should_fail():
+    # 1. 注册并登录骑手
+    rider = register_user(user_type=RIDER)
+    name = rider["name"]
+    password = rider["password"]
+    login_response = call_api(USER_SERVICE, "UserLogin", name=name, password=password)
+    assert login_response.status_code == 200
+    rider_token = login_response.json()
+
+    # 2. 注册并登录商家
+    merchant = register_user(user_type=MERCHANT, address="上海市南京东路1号")
+    merchant_name = merchant["name"]
+    merchant_password = merchant["password"]
+    merchant_login_response = call_api(USER_SERVICE, "UserLogin", name=merchant_name, password=merchant_password)
+    assert merchant_login_response.status_code == 200
+    merchant_token = merchant_login_response.json()
+
+    # 获取商家ID
+    merchant_info = get_user_info_by_token(merchant_token).json()
+    merchant_id = merchant_info["userID"]
+
+    # 3. 构造商品列表
+    product_list = []
+
+    # 4. 骑手尝试创建订单（应失败）
+    destination_address = "上海市人民广场B座"
+    order_response = create_order(rider_token, merchant_id, product_list, destination_address)
+    assert order_response.status_code == 400
+
+    print("✅ 非顾客用户无法创建订单（预期行为）")
