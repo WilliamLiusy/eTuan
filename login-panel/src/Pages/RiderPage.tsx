@@ -37,6 +37,19 @@ function TabPanel(props: TabPanelProps) {
     );
 }
 
+// 通用响应处理函数
+const parseApiResponse = (response: string, defaultMessage?: string): string => {
+    try {
+        const parsed = JSON.parse(response);
+        if (typeof parsed === 'string') {
+            return parsed;
+        }
+        return defaultMessage || '操作成功';
+    } catch {
+        return response || defaultMessage || '操作成功';
+    }
+};
+
 const RiderPage: React.FC = () => {
     const [tabValue, setTabValue] = useState(0);
     const [availableOrders, setAvailableOrders] = useState<OrderInfo[]>([]);
@@ -129,7 +142,8 @@ const RiderPage: React.FC = () => {
             const updateRiderMsg = new UpdateRider(orderID, userInfo.userID);
             updateRiderMsg.send(
                 (result: string) => {
-                    setSuccess('接单成功！');
+                    const message = parseApiResponse(result, '接单成功！');
+                    setSuccess(message);
                     loadAvailableOrders(); // 重新加载可接订单
                     loadMyOrders(); // 重新加载我的订单
                     setLoading(false);
@@ -152,7 +166,8 @@ const RiderPage: React.FC = () => {
             const updateStatusMsg = new UpdateOrderStatus(orderID, newStatus);
             updateStatusMsg.send(
                 (result: string) => {
-                    setSuccess(`订单状态已更新为：${newStatus}`);
+                    const message = parseApiResponse(result, `订单状态已更新为：${newStatus}`);
+                    setSuccess(message);
                     loadMyOrders(); // 重新加载我的订单
                     setLoading(false);
                 },

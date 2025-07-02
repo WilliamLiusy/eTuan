@@ -39,6 +39,19 @@ function TabPanel(props: TabPanelProps) {
     );
 }
 
+// 通用响应处理函数
+const parseApiResponse = (response: string, defaultMessage?: string): string => {
+    try {
+        const parsed = JSON.parse(response);
+        if (typeof parsed === 'string') {
+            return parsed;
+        }
+        return defaultMessage || '操作成功';
+    } catch {
+        return response || defaultMessage || '操作成功';
+    }
+};
+
 const MerchantPage: React.FC = () => {
     const [tabValue, setTabValue] = useState(0);
     const [products, setProducts] = useState<ProductInfo[]>([]);
@@ -56,9 +69,15 @@ const MerchantPage: React.FC = () => {
 
     useEffect(() => {
         loadUserInfo();
-        loadProducts();
-        loadOrders();
     }, []);
+
+    // 当用户信息加载完成后，加载商品和订单
+    useEffect(() => {
+        if (userInfo?.userID) {
+            loadProducts();
+            loadOrders();
+        }
+    }, [userInfo]);
 
     const loadUserInfo = async () => {
         const token = getUserToken();
@@ -84,6 +103,7 @@ const MerchantPage: React.FC = () => {
         const token = getUserToken();
         if (token && userInfo?.userID) {
             setLoading(true);
+            console.log('加载商家商品，商家ID:', userInfo.userID); // 添加调试日志
             const getProductsMsg = new FetchProductsByMerchantIDMessage(userInfo.userID);
             getProductsMsg.send(
                 (productsStr: string) => {
@@ -135,7 +155,8 @@ const MerchantPage: React.FC = () => {
 
             addProductMsg.send(
                 (result: string) => {
-                    setSuccess('商品添加成功');
+                    const message = parseApiResponse(result, '商品添加成功');
+                    setSuccess(message);
                     setAddProductOpen(false);
                     setNewProductName('');
                     setNewProductPrice('');
@@ -170,7 +191,8 @@ const MerchantPage: React.FC = () => {
 
             removeProductMsg.send(
                 (result: string) => {
-                    setSuccess('商品删除成功');
+                    const message = parseApiResponse(result, '商品删除成功');
+                    setSuccess(message);
                     loadProducts(); // 重新加载商品列表
                     setLoading(false);
                 },
