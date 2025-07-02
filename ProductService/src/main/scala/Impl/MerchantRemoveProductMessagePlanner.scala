@@ -34,6 +34,8 @@ import cats.implicits.*
 import Common.Serialize.CustomColumnTypes.{decodeDateTime,encodeDateTime}
 import Objects.UserCenter.RiderStatus
 
+
+
 case class MerchantRemoveProductMessagePlanner(
     merchantToken: String,
     name: String,
@@ -93,7 +95,11 @@ case class MerchantRemoveProductMessagePlanner(
 
   // 根据商家ID和商品名称获取商品信息
   private def fetchProductByNameAndMerchantID(merchantID: String)(using PlanContext): IO[Option[ProductInfo]] = {
-    FetchProductsByNameAndMerchantIDMessage(merchantID, name).send.handleErrorWith { error =>
+    FetchProductsByNameAndMerchantIDMessage(merchantID, name).send.map { result =>
+      logger.info(s"Response from .send: $result")
+      result
+    }
+      .handleErrorWith { error =>
       IO(logger.error(s"[Step 2.1] 根据商家ID=$merchantID 和商品名称=$name 获取商品失败: ${error.getMessage}")) >>
         IO.pure(None)
     }

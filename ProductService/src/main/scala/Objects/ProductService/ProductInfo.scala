@@ -69,7 +69,8 @@ case object ProductInfo{
     circeDecoder.tryDecode(cursor).orElse(jacksonDecoder.tryDecode(cursor))
   }
 
-
+  implicit val optionProductInfoDecoder: Decoder[Option[ProductInfo]] =
+    Decoder[List[ProductInfo]].map(_.headOption)
 
   //process object code 预留标志位，不要删除
 

@@ -70,6 +70,8 @@ case object ProductInfo{
   }
 
 
+  implicit val optionProductInfoDecoder: Decoder[Option[ProductInfo]] =
+    Decoder[List[ProductInfo]].map(_.headOption)
 
   //process object code 预留标志位，不要删除
 
