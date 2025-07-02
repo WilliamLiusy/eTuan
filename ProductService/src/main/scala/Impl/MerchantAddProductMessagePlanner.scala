@@ -46,6 +46,10 @@ case class MerchantAddProductMessagePlanner(
       _ <- IO(logger.info(s"[Step 1] 验证商家身份中，merchantToken=${merchantToken}"))
       merchantInfo <- validateMerchantIdentity(merchantToken)
 
+      // Step 1.5: Verify product info
+      - <- IO(logger.info(s"[Step 1.5] 验证产品是否合理,name=${name}, price=${price}, description=${description} "))
+      - <- validateProductInfo(name, price)
+
       // Step 2: Generate unique product ID
       _ <- IO(logger.info(s"[Step 2] 开始生成商品唯一编号"))
       productID <- IO(generateProductID())
@@ -102,4 +106,17 @@ case class MerchantAddProductMessagePlanner(
       logger.info(s"[Step 3] 成功将商品信息写入数据库，productID=${productID}")
     }.void
   }
+
+  private def validateProductInfo(name: String, price: Double)(using PlanContext) = {
+    if (name == null || name.trim.isEmpty) {
+      val errorMessage = "[Validation Failed] 商品名称不能为空"
+      IO(logger.error(errorMessage)) *> IO.raiseError(new IllegalArgumentException(errorMessage))
+    }
+    else if (price < 0) {
+      val errorMessage = s"[Validation Failed] 商品价格不能为负数，当前价格为 $price"
+      IO(logger.error(errorMessage)) *> IO.raiseError(new IllegalArgumentException(errorMessage))
+    }
+    else IO.unit
+  }
+
 }
