@@ -55,8 +55,13 @@ const RegisterPage: React.FC = () => {
 
             registerMessage.send(
                 (token: string) => {
+                    // 处理 token 多余引号和转义
+                    let cleanToken = token;
+                    if (typeof cleanToken === 'string') {
+                        cleanToken = cleanToken.replace(/^"+|"+$/g, '').replace(/^'+|'+$/g, '').replace(/\\+/g, '');
+                    }
                     setSuccess('注册成功！正在跳转...');
-                    setUserToken(token);
+                    setUserToken(cleanToken);
 
                     // 注册成功后根据用户类型跳转
                     setTimeout(() => {
