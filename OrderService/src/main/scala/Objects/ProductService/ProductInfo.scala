@@ -42,7 +42,7 @@ case class ProductInfo(
 
 case object ProductInfo{
 
-    
+
   import Common.Serialize.CustomColumnTypes.{decodeDateTime,encodeDateTime}
 
   // Circe 默认的 Encoder 和 Decoder
@@ -55,10 +55,10 @@ case object ProductInfo{
   }
 
   private val jacksonDecoder: Decoder[ProductInfo] = Decoder.instance { cursor =>
-    try { Right(JacksonSerializeUtils.deserialize(cursor.value.noSpaces, new TypeReference[ProductInfo]() {})) } 
+    try { Right(JacksonSerializeUtils.deserialize(cursor.value.noSpaces, new TypeReference[ProductInfo]() {})) }
     catch { case e: Throwable => Left(io.circe.DecodingFailure(e.getMessage, cursor.history)) }
   }
-  
+
   // Circe + Jackson 兜底的 Encoder
   given productInfoEncoder: Encoder[ProductInfo] = Encoder.instance { config =>
     Try(circeEncoder(config)).getOrElse(jacksonEncoder(config))
