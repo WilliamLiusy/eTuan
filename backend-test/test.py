@@ -977,3 +977,251 @@ def test_create_order_by_non_customer_should_fail():
     assert order_response.status_code == 400
 
     print("✅ 非顾客用户无法创建订单（预期行为）")
+
+def get_order_details(order_id: str):
+    """
+    调用 GetOrderDetails 接口
+    :param order_id: 订单ID
+    :return: Response 对象
+    """
+    return call_api(ORDER_SERVICE, "GetOrderDetails", orderID=order_id)
+
+def test_get_order_details_success():
+    # 1. 注册并登录顾客
+    customer = register_user(user_type=CUSTOMER)
+    name = customer["name"]
+    password = customer["password"]
+    login_response = call_api(USER_SERVICE, "UserLogin", name=name, password=password)
+    assert login_response.status_code == 200
+    customer_token = login_response.json()
+
+    # 2. 注册并登录商家
+    merchant = register_user(user_type=MERCHANT, address="上海市南京东路1号")
+    merchant_name = merchant["name"]
+    merchant_password = merchant["password"]
+    merchant_login_response = call_api(USER_SERVICE, "UserLogin", name=merchant_name, password=merchant_password)
+    assert merchant_login_response.status_code == 200
+    merchant_token = merchant_login_response.json()
+
+    # 获取商家ID
+    merchant_info = get_user_info_by_token(merchant_token).json()
+    merchant_id = merchant_info["userID"]
+
+    # 3. 添加商品到商家
+    product_name = "招牌奶茶"
+    add_product(merchant_token, product_name, 15.9, "每日现做")
+    fetch_response = fetch_products_by_merchant_id(merchant_id)
+    products = fetch_response.json()
+    product_info = products[0]
+
+    # 4. 构建订单商品列表
+    product_list = [{
+        "productID": product_info["productID"],
+        "merchantID": product_info["merchantID"],
+        "name": product_info["name"],
+        "price": product_info["price"],
+        "description": product_info["description"]
+    }]
+
+    # 5. 创建订单
+    destination_address = "上海市人民广场B座"
+    create_order_response = create_order(customer_token=customer_token,
+                                     merchant_id=merchant_id,
+                                     product_list=product_list,
+                                     destination_address=destination_address)
+    assert create_order_response.status_code == 200
+    order_id = create_order_response.json()
+    assert isinstance(order_id, str) and len(order_id) > 0
+
+    # 6. 获取订单详情
+    get_details_response = get_order_details(order_id)
+    assert get_details_response.status_code == 200
+    order_info = get_details_response.json()
+
+    # 7. 验证字段是否存在
+    assert "orderID" in order_info
+    assert "customerID" in order_info
+    assert "merchantID" in order_info
+    assert "riderID" in order_info
+    assert "productList" in order_info
+    assert "destinationAddress" in order_info
+    assert "orderStatus" in order_info
+    assert "orderTime" in order_info
+
+    # 8. 验证字段值
+    assert order_info["orderID"] == order_id
+    assert order_info["customerID"] is not None
+    assert order_info["merchantID"] == merchant_id
+    assert order_info["riderID"] is None or order_info["riderID"] == ""
+    assert order_info["destinationAddress"] == destination_address
+    assert order_info["orderStatus"] == "等待出餐"
+
+    # 9. 验证商品信息一致性
+    fetched_product = order_info["productList"][0]
+    assert fetched_product["productID"] == product_list[0]["productID"]
+    assert fetched_product["name"] == product_list[0]["name"]
+    assert abs(fetched_product["price"] - product_list[0]["price"]) < 1e-6
+    assert fetched_product["description"] == product_list[0]["description"]
+
+    print("✅ 顾客成功获取订单详情，字段验证通过")
+
+def test_get_order_details_with_invalid_order_id_should_fail():
+    invalid_order_id = "invalid_order_id_123"
+    response = get_order_details(invalid_order_id)
+    assert response.status_code != 200 or response.json() == "failure"
+
+    print("✅ 使用无效订单ID查询返回错误（预期行为）")
+
+def test_query_orders_by_user_for_customer():
+    # 1. 注册并登录顾客
+    customer = register_user(user_type=CUSTOMER)
+    name = customer["name"]
+    password = customer["password"]
+    login_response = call_api(USER_SERVICE, "UserLogin", name=name, password=password)
+    assert login_response.status_code == 200
+    customer_token = login_response.json()
+    customer_info = get_user_info_by_token(customer_token).json()
+    customer_id = customer_info["userID"]
+
+    # 2. 注册并登录商家
+    merchant = register_user(user_type=MERCHANT, address="上海市南京东路1号")
+    merchant_name = merchant["name"]
+    merchant_password = merchant["password"]
+    merchant_login_response = call_api(USER_SERVICE, "UserLogin", name=merchant_name, password=merchant_password)
+    assert merchant_login_response.status_code == 200
+    merchant_token = merchant_login_response.json()
+    merchant_info = get_user_info_by_token(merchant_token).json()
+    merchant_id = merchant_info["userID"]
+
+    # 3. 添加商品
+    product_name = "招牌奶茶"
+    add_product(merchant_token, product_name, 15.9, "每日现做")
+    fetch_response = fetch_products_by_merchant_id(merchant_id)
+    products = fetch_response.json()
+    product_info = products[0]
+
+    product_list = [{
+        "productID": product_info["productID"],
+        "merchantID": product_info["merchantID"],
+        "name": product_info["name"],
+        "price": product_info["price"],
+        "description": product_info["description"]
+    }]
+    destination_address = "上海市人民广场B座"
+
+    # 4. 创建多个订单
+    order_ids = []
+    for _ in range(2):
+        order_response = create_order(customer_token, merchant_id, product_list, destination_address)
+        assert order_response.status_code == 200
+        order_ids.append(order_response.json())
+
+    # 5. 查询订单
+    response = call_api(ORDER_SERVICE, "QueryOrdersByUser", userToken=customer_token)
+    assert response.status_code == 200
+    orders = response.json()
+    assert isinstance(orders, list)
+    assert len(orders) == len(order_ids), f"Expected {len(order_ids)} orders, got {len(orders)}"
+
+    # 6. 验证字段
+    for order in orders:
+        assert "orderID" in order
+        assert "customerID" in order
+        assert "merchantID" in order
+        assert "destinationAddress" in order
+        assert "orderStatus" in order
+        assert "orderTime" in order
+        assert "productList" in order
+        assert order["customerID"] == customer_id
+        assert order["merchantID"] == merchant_id
+        assert order["destinationAddress"] == destination_address
+        assert order["orderStatus"] == "等待出餐"
+        assert len(order["productList"]) == 1
+        assert order["productList"][0]["name"] == product_name
+
+    print("✅ 顾客成功查询到自己的订单列表")
+
+def test_query_orders_by_user_for_merchant():
+    # 1. 注册并登录商家
+    merchant = register_user(user_type=MERCHANT, address="上海市南京东路1号")
+    merchant_name = merchant["name"]
+    merchant_password = merchant["password"]
+    merchant_login_response = call_api(USER_SERVICE, "UserLogin", name=merchant_name, password=merchant_password)
+    assert merchant_login_response.status_code == 200
+    merchant_token = merchant_login_response.json()
+    merchant_info = get_user_info_by_token(merchant_token).json()
+    merchant_id = merchant_info["userID"]
+
+    # 2. 注册多个顾客并创建订单
+    customer_tokens = []
+    for _ in range(2):
+        customer = register_user(user_type=CUSTOMER)
+        name = customer["name"]
+        password = customer["password"]
+        login_response = call_api(USER_SERVICE, "UserLogin", name=name, password=password)
+        assert login_response.status_code == 200
+        customer_tokens.append(login_response.json())
+
+    # 3. 添加商品
+    product_name = "招牌奶茶"
+    add_product(merchant_token, product_name, 15.9, "每日现做")
+    fetch_response = fetch_products_by_merchant_id(merchant_id)
+    products = fetch_response.json()
+    product_info = products[0]
+
+    product_list = [{
+        "productID": product_info["productID"],
+        "merchantID": product_info["merchantID"],
+        "name": product_info["name"],
+        "price": product_info["price"],
+        "description": product_info["description"]
+    }]
+    destination_address = "上海市人民广场B座"
+
+    # 4. 创建多个订单
+    order_ids = []
+    for token in customer_tokens:
+        order_response = create_order(token, merchant_id, product_list, destination_address)
+        assert order_response.status_code == 200
+        order_ids.append(order_response.json())
+
+    # 5. 查询订单
+    response = call_api(ORDER_SERVICE, "QueryOrdersByUser", userToken=merchant_token)
+    assert response.status_code == 200
+    orders = response.json()
+    assert isinstance(orders, list)
+    assert len(orders) == len(order_ids)
+
+    # 6. 验证字段
+    for order in orders:
+        assert "orderID" in order
+        assert "merchantID" in order
+        assert order["merchantID"] == merchant_id
+
+    print("✅ 商家成功查询到相关订单列表")
+
+def test_query_orders_by_user_no_orders():
+    # 注册并登录用户
+    user = register_user(user_type=CUSTOMER)
+    name = user["name"]
+    password = user["password"]
+    login_response = call_api(USER_SERVICE, "UserLogin", name=name, password=password)
+    assert login_response.status_code == 200
+    token = login_response.json()
+
+    # 查询订单
+    response = call_api(ORDER_SERVICE, "QueryOrdersByUser", userToken=token)
+    assert response.status_code == 200
+    orders = response.json()
+    assert isinstance(orders, list)
+    assert len(orders) == 0, "Expected empty list when there are no orders"
+
+    print("✅ 查询无订单用户返回空列表")
+
+def test_query_orders_by_user_with_invalid_token():
+    invalid_token = "invalid_token_123"
+    response = call_api(ORDER_SERVICE, "QueryOrdersByUser", userToken=invalid_token)
+    assert response.status_code != 200 or response.json() == "Unauthorized", \
+        "Expected unauthorized response for invalid token"
+
+    print("✅ 使用无效token查询订单返回错误")
