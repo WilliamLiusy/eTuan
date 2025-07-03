@@ -12,9 +12,11 @@ import { UpdateRider } from '../Plugins/OrderService/APIs/UpdateRider';
 import { UpdateOrderStatus } from '../Plugins/OrderService/APIs/UpdateOrderStatus';
 import { QueryOrdersByUser } from '../Plugins/OrderService/APIs/QueryOrdersByUser';
 import { GetUserInfoByToken } from '../Plugins/UserCenter/APIs/GetUserInfoByToken';
+import { UpdateStatus } from '../Plugins/UserCenter/APIs/UpdateStatus';
 import { getUserToken, setUserToken } from '../Globals/GlobalStore';
 import { OrderInfo } from '../Plugins/OrderService/Objects/OrderInfo';
 import { OrderStatus } from '../Plugins/OrderService/Objects/OrderStatus';
+import { RiderStatus } from '../Plugins/UserCenter/Objects/RiderStatus';
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -58,6 +60,7 @@ const RiderPage: React.FC = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [userInfo, setUserInfo] = useState<any>(null);
+    const [riderStatus, setRiderStatus] = useState<RiderStatus | null>(null);
 
     useEffect(() => {
         loadUserInfo();
@@ -74,6 +77,7 @@ const RiderPage: React.FC = () => {
                     try {
                         const info = JSON.parse(userInfoStr);
                         setUserInfo(info);
+                        if (info.riderStatus) setRiderStatus(info.riderStatus as RiderStatus);
                     } catch (err) {
                         console.error('解析用户信息失败:', err);
                     }
@@ -182,6 +186,34 @@ const RiderPage: React.FC = () => {
         }
     };
 
+    const handleToggleDuty = async () => {
+        if (!userInfo?.userID) {
+            setError('用户信息不完整');
+            return;
+        }
+        setLoading(true);
+        const token = getUserToken();
+        const newStatus = riderStatus === RiderStatus.OffDuty ? RiderStatus.Idle : RiderStatus.OffDuty;
+        try {
+            const updateStatusMsg = new UpdateStatus(token, newStatus);
+            updateStatusMsg.send(
+                (result: string) => {
+                    setSuccess(newStatus === RiderStatus.Idle ? '已上班' : '已下班');
+                    setRiderStatus(newStatus);
+                    loadUserInfo();
+                    setLoading(false);
+                },
+                (error: any) => {
+                    setError('切换上下班失败：' + (error?.message || '未知错误'));
+                    setLoading(false);
+                }
+            );
+        } catch (err) {
+            setError('切换上下班失败，请稍后重试');
+            setLoading(false);
+        }
+    };
+
     const getStatusColor = (status: OrderStatus) => {
         switch (status) {
             case OrderStatus.waitingForAssign: return 'warning';
@@ -235,6 +267,17 @@ const RiderPage: React.FC = () => {
                     {success}
                 </Alert>
             )}
+
+            {/* 上下班按钮 */}
+            <Button
+                variant="contained"
+                color={riderStatus === RiderStatus.OffDuty ? 'success' : 'warning'}
+                onClick={handleToggleDuty}
+                disabled={loading}
+                sx={{ m: 2 }}
+            >
+                {riderStatus === RiderStatus.OffDuty ? '上班' : '下班'}
+            </Button>
 
             {/* 统计信息 */}
             <Paper sx={{ p: 2, m: 2 }}>
