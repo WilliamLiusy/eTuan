@@ -24,29 +24,40 @@ const LoginPage: React.FC = () => {
 
             loginMessage.send(
                 (token: string) => {
-                    // 登录成功，保存token
-                    setUserToken(token);
+                    // 登录成功，处理token（移除可能的多余引号）
+                    let cleanToken = token;
+                    try {
+                        // 如果token是JSON字符串，解析它
+                        cleanToken = JSON.parse(token);
+                    } catch {
+                        // 如果不是JSON字符串，直接使用原值
+                        cleanToken = token;
+                    }
+
+                    setUserToken(cleanToken);
 
                     // 获取用户信息以确定跳转页面
-                    const getUserInfo = new GetUserInfoByToken(token);
+                    const getUserInfo = new GetUserInfoByToken(cleanToken);
                     getUserInfo.send(
                         (userInfoStr: string) => {
                             try {
                                 const userInfo = JSON.parse(userInfoStr);
-
-                                // 根据用户类型跳转到对应页面
+                                console.log('获取用户信息成功:', userInfo.userType);
                                 switch (userInfo.userType) {
-                                    case 'customer':
+                                    case '顾客':
                                         window.location.hash = '#/order';
                                         break;
-                                    case 'merchant':
+                                    case '商家':
                                         window.location.hash = '#/merchant';
                                         break;
-                                    case 'rider':
+                                    case '骑手':
                                         window.location.hash = '#/rider';
                                         break;
                                     default:
-                                        window.location.hash = '#/order';
+                                        {
+                                            setError('获取用户信息失败');
+                                            window.location.hash = '#/order';
+                                        }
                                 }
                             } catch (parseError) {
                                 console.error('解析用户信息失败:', parseError);
@@ -56,8 +67,8 @@ const LoginPage: React.FC = () => {
                         },
                         (error: any) => {
                             console.error('获取用户信息失败:', error);
-                            // 获取用户信息失败时，默认跳转到订单页面
-                            window.location.hash = '#/order';
+                            window.location.hash = '#/login';
+                            setError('获取用户信息失败');
                             setLoading(false);
                         }
                     );

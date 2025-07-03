@@ -17,6 +17,7 @@ import { GetUserInfoByToken } from '../Plugins/UserCenter/APIs/GetUserInfoByToke
 import { getUserToken, setUserToken } from '../Globals/GlobalStore';
 import { ProductInfo } from '../Plugins/ProductService/Objects/ProductInfo';
 import { OrderInfo } from '../Plugins/OrderService/Objects/OrderInfo';
+import { OrderStatus } from '../Plugins/OrderService/Objects/OrderStatus';
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -39,6 +40,19 @@ function TabPanel(props: TabPanelProps) {
     );
 }
 
+// 通用响应处理函数
+const parseApiResponse = (response: string, defaultMessage?: string): string => {
+    try {
+        const parsed = JSON.parse(response);
+        if (typeof parsed === 'string') {
+            return parsed;
+        }
+        return defaultMessage || '操作成功';
+    } catch {
+        return response || defaultMessage || '操作成功';
+    }
+};
+
 const MerchantPage: React.FC = () => {
     const [tabValue, setTabValue] = useState(0);
     const [products, setProducts] = useState<ProductInfo[]>([]);
@@ -54,11 +68,21 @@ const MerchantPage: React.FC = () => {
     const [newProductPrice, setNewProductPrice] = useState('');
     const [newProductDescription, setNewProductDescription] = useState('');
 
+    // 订单详情弹窗状态
+    const [detailOpen, setDetailOpen] = useState(false);
+    const [detailOrder, setDetailOrder] = useState<OrderInfo | null>(null);
+
     useEffect(() => {
         loadUserInfo();
-        loadProducts();
-        loadOrders();
     }, []);
+
+    // 当用户信息加载完成后，加载商品和订单
+    useEffect(() => {
+        if (userInfo?.userID) {
+            loadProducts();
+            loadOrders();
+        }
+    }, [userInfo]);
 
     const loadUserInfo = async () => {
         const token = getUserToken();
@@ -82,9 +106,10 @@ const MerchantPage: React.FC = () => {
 
     const loadProducts = async () => {
         const token = getUserToken();
-        if (token && userInfo?.id) {
+        if (token && userInfo?.userID) {
             setLoading(true);
-            const getProductsMsg = new FetchProductsByMerchantIDMessage(userInfo.id);
+            console.log('加载商家商品，商家ID:', userInfo.userID); // 添加调试日志
+            const getProductsMsg = new FetchProductsByMerchantIDMessage(userInfo.userID);
             getProductsMsg.send(
                 (productsStr: string) => {
                     try {
@@ -105,9 +130,47 @@ const MerchantPage: React.FC = () => {
     };
 
     const loadOrders = async () => {
-        // 这里应该有一个获取商家订单的 API
-        // 目前先用空数组
-        setOrders([]);
+        // 商家订单查询：用 QueryOrdersByUser(token) 查询所有与该商家相关的订单
+        const token = getUserToken();
+        if (!token || !userInfo?.userID) {
+            setOrders([]);
+            return;
+        }
+        setLoading(true);
+        try {
+            const queryOrdersMsg = new (require('../Plugins/OrderService/APIs/QueryOrdersByUser').QueryOrdersByUser)(token);
+            queryOrdersMsg.send(
+                (ordersStr: string) => {
+                    try {
+                        let orderList = [];
+                        try {
+                            orderList = JSON.parse(ordersStr);
+                        } catch {
+                            orderList = [];
+                        }
+                        // 只保留 merchantID 匹配当前商家的订单
+                        const merchantOrders = Array.isArray(orderList)
+                            ? orderList.filter((order: any) => order.merchantID === userInfo.userID)
+                            : [];
+                        setOrders(merchantOrders);
+                    } catch (err) {
+                        setError('解析订单数据失败');
+                        setOrders([]);
+                    } finally {
+                        setLoading(false);
+                    }
+                },
+                (error: any) => {
+                    setError('获取订单失败：' + (error?.message || '未知错误'));
+                    setOrders([]);
+                    setLoading(false);
+                }
+            );
+        } catch (err) {
+            setError('获取订单失败，请稍后重试');
+            setOrders([]);
+            setLoading(false);
+        }
     };
 
     const handleAddProduct = async () => {
@@ -135,7 +198,8 @@ const MerchantPage: React.FC = () => {
 
             addProductMsg.send(
                 (result: string) => {
-                    setSuccess('商品添加成功');
+                    const message = parseApiResponse(result, '商品添加成功');
+                    setSuccess(message);
                     setAddProductOpen(false);
                     setNewProductName('');
                     setNewProductPrice('');
@@ -170,7 +234,8 @@ const MerchantPage: React.FC = () => {
 
             removeProductMsg.send(
                 (result: string) => {
-                    setSuccess('商品删除成功');
+                    const message = parseApiResponse(result, '商品删除成功');
+                    setSuccess(message);
                     loadProducts(); // 重新加载商品列表
                     setLoading(false);
                 },
@@ -181,6 +246,50 @@ const MerchantPage: React.FC = () => {
             );
         } catch (err) {
             setError('删除商品失败，请稍后重试');
+            setLoading(false);
+        }
+    };
+
+    // 获取下一个订单状态
+    const getNextStatus = (currentStatus: OrderStatus): OrderStatus | null => {
+        switch (currentStatus) {
+            case OrderStatus.waitingForDish:
+                return OrderStatus.delivering;
+            case OrderStatus.delivering:
+                return OrderStatus.completed;
+            default:
+                return null;
+        }
+    };
+    // 状态按钮文案
+    const getNextStatusText = (currentStatus: OrderStatus): string => {
+        switch (currentStatus) {
+            case OrderStatus.waitingForDish:
+                return '开始配送';
+            case OrderStatus.delivering:
+                return '订单完成';
+            default:
+                return '';
+        }
+    };
+    // 修改订单状态
+    const handleUpdateOrderStatus = async (orderID: string, newStatus: OrderStatus) => {
+        setLoading(true);
+        try {
+            const updateStatusMsg = new UpdateOrderStatus(orderID, newStatus);
+            updateStatusMsg.send(
+                (result: string) => {
+                    setSuccess('订单状态已更新');
+                    loadOrders();
+                    setLoading(false);
+                },
+                (error: any) => {
+                    setError('更新订单状态失败：' + (error?.message || '未知错误'));
+                    setLoading(false);
+                }
+            );
+        } catch (err) {
+            setError('更新订单状态失败，请稍后重试');
             setLoading(false);
         }
     };
@@ -321,9 +430,20 @@ const MerchantPage: React.FC = () => {
                                         />
                                     </CardContent>
                                     <CardActions>
-                                        <Button size="small">
+                                        <Button size="small" onClick={() => { setDetailOrder(order); setDetailOpen(true); }}>
                                             查看详情
                                         </Button>
+                                        {getNextStatus(order.orderStatus) && (
+                                            <Button
+                                                size="small"
+                                                variant="contained"
+                                                color="primary"
+                                                onClick={() => handleUpdateOrderStatus(order.orderID, getNextStatus(order.orderStatus)!)}
+                                                disabled={loading}
+                                            >
+                                                {getNextStatusText(order.orderStatus)}
+                                            </Button>
+                                        )}
                                     </CardActions>
                                 </Card>
                             </Grid>
@@ -377,6 +497,44 @@ const MerchantPage: React.FC = () => {
                     >
                         {loading ? <CircularProgress size={20} /> : '添加'}
                     </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* 订单详情弹窗 */}
+            <Dialog open={detailOpen} onClose={() => setDetailOpen(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>订单详情</DialogTitle>
+                <DialogContent>
+                    {detailOrder ? (
+                        <>
+                            <Typography>订单号：{detailOrder.orderID}</Typography>
+                            <Typography>顾客：{detailOrder.customerID}</Typography>
+                            <Typography>配送地址：{detailOrder.destinationAddress}</Typography>
+                            <Typography>商品数量：{detailOrder.productList?.length || 0}</Typography>
+                            <Typography>状态：{detailOrder.orderStatus}</Typography>
+                            <Box mt={2}>
+                                <Typography variant="subtitle1">商品详情：</Typography>
+                                {Array.isArray(detailOrder.productList) && detailOrder.productList.length > 0 ? (
+                                    <List dense>
+                                        {detailOrder.productList.map((item: any, idx: number) => (
+                                            <ListItem key={idx} divider>
+                                                <ListItemText
+                                                    primary={item.name ? `${item.name} × ${item.count || 1}` : JSON.stringify(item)}
+                                                    secondary={item.price ? `单价：¥${item.price}` : ''}
+                                                />
+                                            </ListItem>
+                                        ))}
+                                    </List>
+                                ) : (
+                                    <Typography color="text.secondary">无商品信息</Typography>
+                                )}
+                            </Box>
+                        </>
+                    ) : (
+                        <Typography>无订单信息</Typography>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setDetailOpen(false)}>关闭</Button>
                 </DialogActions>
             </Dialog>
         </Box>

@@ -12,9 +12,11 @@ import { UpdateRider } from '../Plugins/OrderService/APIs/UpdateRider';
 import { UpdateOrderStatus } from '../Plugins/OrderService/APIs/UpdateOrderStatus';
 import { QueryOrdersByUser } from '../Plugins/OrderService/APIs/QueryOrdersByUser';
 import { GetUserInfoByToken } from '../Plugins/UserCenter/APIs/GetUserInfoByToken';
+import { UpdateStatus } from '../Plugins/UserCenter/APIs/UpdateStatus';
 import { getUserToken, setUserToken } from '../Globals/GlobalStore';
 import { OrderInfo } from '../Plugins/OrderService/Objects/OrderInfo';
 import { OrderStatus } from '../Plugins/OrderService/Objects/OrderStatus';
+import { RiderStatus } from '../Plugins/UserCenter/Objects/RiderStatus';
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -37,6 +39,19 @@ function TabPanel(props: TabPanelProps) {
     );
 }
 
+// 通用响应处理函数
+const parseApiResponse = (response: string, defaultMessage?: string): string => {
+    try {
+        const parsed = JSON.parse(response);
+        if (typeof parsed === 'string') {
+            return parsed;
+        }
+        return defaultMessage || '操作成功';
+    } catch {
+        return response || defaultMessage || '操作成功';
+    }
+};
+
 const RiderPage: React.FC = () => {
     const [tabValue, setTabValue] = useState(0);
     const [availableOrders, setAvailableOrders] = useState<OrderInfo[]>([]);
@@ -45,6 +60,7 @@ const RiderPage: React.FC = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [userInfo, setUserInfo] = useState<any>(null);
+    const [riderStatus, setRiderStatus] = useState<RiderStatus | null>(null);
 
     useEffect(() => {
         loadUserInfo();
@@ -61,6 +77,7 @@ const RiderPage: React.FC = () => {
                     try {
                         const info = JSON.parse(userInfoStr);
                         setUserInfo(info);
+                        if (info.riderStatus) setRiderStatus(info.riderStatus as RiderStatus);
                     } catch (err) {
                         console.error('解析用户信息失败:', err);
                     }
@@ -103,7 +120,7 @@ const RiderPage: React.FC = () => {
                         const orderList = JSON.parse(ordersStr);
                         // 过滤出分配给当前骑手的订单
                         const myAssignedOrders = orderList.filter((order: OrderInfo) =>
-                            order.riderID === userInfo?.id
+                            order.riderID === userInfo?.userID
                         );
                         setMyOrders(myAssignedOrders);
                     } catch (err) {
@@ -118,7 +135,7 @@ const RiderPage: React.FC = () => {
     };
 
     const handleAcceptOrder = async (orderID: string) => {
-        if (!userInfo?.id) {
+        if (!userInfo?.userID) {
             setError('用户信息不完整');
             return;
         }
@@ -126,10 +143,11 @@ const RiderPage: React.FC = () => {
         setLoading(true);
 
         try {
-            const updateRiderMsg = new UpdateRider(orderID, userInfo.id);
+            const updateRiderMsg = new UpdateRider(orderID, userInfo.userID);
             updateRiderMsg.send(
                 (result: string) => {
-                    setSuccess('接单成功！');
+                    const message = parseApiResponse(result, '接单成功！');
+                    setSuccess(message);
                     loadAvailableOrders(); // 重新加载可接订单
                     loadMyOrders(); // 重新加载我的订单
                     setLoading(false);
@@ -152,7 +170,8 @@ const RiderPage: React.FC = () => {
             const updateStatusMsg = new UpdateOrderStatus(orderID, newStatus);
             updateStatusMsg.send(
                 (result: string) => {
-                    setSuccess(`订单状态已更新为：${newStatus}`);
+                    const message = parseApiResponse(result, `订单状态已更新为：${newStatus}`);
+                    setSuccess(message);
                     loadMyOrders(); // 重新加载我的订单
                     setLoading(false);
                 },
@@ -163,6 +182,34 @@ const RiderPage: React.FC = () => {
             );
         } catch (err) {
             setError('更新订单状态失败，请稍后重试');
+            setLoading(false);
+        }
+    };
+
+    const handleToggleDuty = async () => {
+        if (!userInfo?.userID) {
+            setError('用户信息不完整');
+            return;
+        }
+        setLoading(true);
+        const token = getUserToken();
+        const newStatus = riderStatus === RiderStatus.OffDuty ? RiderStatus.Idle : RiderStatus.OffDuty;
+        try {
+            const updateStatusMsg = new UpdateStatus(token, newStatus);
+            updateStatusMsg.send(
+                (result: string) => {
+                    setSuccess(newStatus === RiderStatus.Idle ? '已上班' : '已下班');
+                    setRiderStatus(newStatus);
+                    loadUserInfo();
+                    setLoading(false);
+                },
+                (error: any) => {
+                    setError('切换上下班失败：' + (error?.message || '未知错误'));
+                    setLoading(false);
+                }
+            );
+        } catch (err) {
+            setError('切换上下班失败，请稍后重试');
             setLoading(false);
         }
     };
@@ -220,6 +267,17 @@ const RiderPage: React.FC = () => {
                     {success}
                 </Alert>
             )}
+
+            {/* 上下班按钮 */}
+            <Button
+                variant="contained"
+                color={riderStatus === RiderStatus.OffDuty ? 'success' : 'warning'}
+                onClick={handleToggleDuty}
+                disabled={loading}
+                sx={{ m: 2 }}
+            >
+                {riderStatus === RiderStatus.OffDuty ? '上班' : '下班'}
+            </Button>
 
             {/* 统计信息 */}
             <Paper sx={{ p: 2, m: 2 }}>

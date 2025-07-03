@@ -16,6 +16,20 @@ import { GetUserInfoByToken } from '../Plugins/UserCenter/APIs/GetUserInfoByToke
 import { getUserToken, setUserToken } from '../Globals/GlobalStore';
 import { OrderInfo } from '../Plugins/OrderService/Objects/OrderInfo';
 import { ProductInfo } from '../Plugins/ProductService/Objects/ProductInfo';
+import { OrderStatus } from '../Plugins/OrderService/Objects/OrderStatus';
+
+// 通用响应处理函数
+const parseApiResponse = (response: string, defaultMessage?: string): string => {
+    try {
+        const parsed = JSON.parse(response);
+        if (typeof parsed === 'string') {
+            return parsed;
+        }
+        return defaultMessage || '操作成功';
+    } catch {
+        return response || defaultMessage || '操作成功';
+    }
+};
 
 interface CartItem {
     product: ProductInfo;
@@ -54,6 +68,7 @@ const OrderPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [userInfo, setUserInfo] = useState<any>(null);
+    const [deliveryAddress, setDeliveryAddress] = useState(''); // 配送地址
 
     // 组件加载时获取用户信息和商家列表
     useEffect(() => {
@@ -106,6 +121,7 @@ const OrderPage: React.FC = () => {
     const loadProducts = async (merchantId: string) => {
         setLoading(true);
         const getProductsMsg = new FetchProductsByMerchantIDMessage(merchantId);
+        console.log('请求商品列表，商家ID:', merchantId);
         getProductsMsg.send(
             (productsStr: string) => {
                 try {
@@ -118,8 +134,8 @@ const OrderPage: React.FC = () => {
                 }
             },
             (error: any) => {
-                setError('获取商品列表失败');
-                setLoading(false);
+                console.error('获取商品列表失败:', error);
+                setError('获取商品列表失败：' + (error?.message));
             }
         );
     };
@@ -131,14 +147,16 @@ const OrderPage: React.FC = () => {
             queryOrdersMsg.send(
                 (ordersStr: string) => {
                     try {
-                        const orderList = JSON.parse(ordersStr);
-                        setOrders(orderList);
+                        const parsedOrders = JSON.parse(ordersStr);
+                        setOrders(parsedOrders);
                     } catch (err) {
                         console.error('解析订单数据失败:', err);
+                        setError('解析订单数据失败');
                     }
                 },
                 (error: any) => {
                     console.error('获取订单列表失败:', error);
+                    setError('获取订单列表失败：' + (error?.message));
                 }
             );
         }
@@ -146,7 +164,7 @@ const OrderPage: React.FC = () => {
 
     const handleMerchantSelect = (merchant: any) => {
         setSelectedMerchant(merchant);
-        loadProducts(merchant.id);
+        loadProducts(merchant.userID);
         setTabValue(1); // 切换到商品标签页
     };
 
@@ -168,7 +186,7 @@ const OrderPage: React.FC = () => {
     const removeFromCart = (productId: string) => {
         setCart(prevCart => {
             return prevCart.map(item =>
-                item.product.productID === productId && item.quantity > 1
+                item.product.productID === productId
                     ? { ...item, quantity: item.quantity - 1 }
                     : item
             ).filter(item => item.quantity > 0);
@@ -194,6 +212,11 @@ const OrderPage: React.FC = () => {
             return;
         }
 
+        if (!deliveryAddress.trim()) {
+            setError('请填写配送地址');
+            return;
+        }
+
         setLoading(true);
         const token = getUserToken();
 
@@ -211,15 +234,19 @@ const OrderPage: React.FC = () => {
 
             const createOrderMsg = new CreateOrder(
                 token || '',
-                selectedMerchant.id,
+                selectedMerchant.userID,
                 productList,
-                '默认地址' // 这里应该让用户输入地址
+                deliveryAddress.trim() // 使用用户输入的配送地址
             );
 
             createOrderMsg.send(
                 (result: string) => {
+                    const message = parseApiResponse(result, '下单成功！');
+                    console.log('下单成功:', message);
+
                     // 下单成功
                     setCart([]); // 清空购物车
+                    setDeliveryAddress(''); // 清空地址
                     setCartOpen(false);
                     loadOrders(); // 重新加载订单列表
                     setTabValue(2); // 切换到订单标签页
@@ -296,7 +323,7 @@ const OrderPage: React.FC = () => {
                 ) : (
                     <Grid container spacing={3}>
                         {merchants.map((merchant) => (
-                            <Grid item xs={12} sm={6} md={4} key={merchant.id}>
+                            <Grid item xs={12} sm={6} md={4} key={merchant.userID}>
                                 <Card>
                                     <CardContent>
                                         <Typography variant="h6">{merchant.name}</Typography>
@@ -377,17 +404,47 @@ const OrderPage: React.FC = () => {
                                 <Card>
                                     <CardContent>
                                         <Typography variant="h6">
-                                            订单 #{order.orderID.substring(0, 8)}...
+                                            订单 #{order.orderID?.substring(0, 8) || 'N/A'}...
                                         </Typography>
                                         <Typography color="text.secondary">
-                                            商家: {order.merchantID}
+                                            商家ID: {order.merchantID || 'N/A'}
+                                        </Typography>
+                                        <Typography color="text.secondary">
+                                            配送地址: {order.destinationAddress || 'N/A'}
                                         </Typography>
                                         <Typography>
-                                            商品数量: {order.productList?.length || 0}
+                                            商品数量: {Array.isArray(order.productList) ? order.productList.length : 0}
+                                        </Typography>
+                                        {/* 显示商品详情 */}
+                                        {Array.isArray(order.productList) && order.productList.length > 0 && (
+                                            <Box sx={{ mt: 1 }}>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    商品详情:
+                                                </Typography>
+                                                {order.productList.slice(0, 3).map((product: any, idx: number) => (
+                                                    <Typography key={idx} variant="body2" sx={{ ml: 1 }}>
+                                                        • {product.name || 'N/A'} - ¥{product.price || 0}
+                                                    </Typography>
+                                                ))}
+                                                {order.productList.length > 3 && (
+                                                    <Typography variant="body2" sx={{ ml: 1 }}>
+                                                        ... 共 {order.productList.length} 件商品
+                                                    </Typography>
+                                                )}
+                                            </Box>
+                                        )}
+                                        <Typography variant="body2" color="text.secondary">
+                                            下单时间: {order.orderTime ? new Date(order.orderTime).toLocaleString() : 'N/A'}
                                         </Typography>
                                         <Chip
-                                            label={order.orderStatus}
-                                            color={order.orderStatus === '已完成' ? 'success' : 'primary'}
+                                            label={order.orderStatus || '未知状态'}
+                                            color={
+                                                String(order.orderStatus) === OrderStatus.completed || String(order.orderStatus) === '已完成'
+                                                    ? 'success'
+                                                    : String(order.orderStatus) === OrderStatus.delivering || String(order.orderStatus) === '正在配送'
+                                                        ? 'warning'
+                                                        : 'primary'
+                                            }
                                             sx={{ mt: 1 }}
                                         />
                                     </CardContent>
@@ -405,29 +462,45 @@ const OrderPage: React.FC = () => {
                     {cart.length === 0 ? (
                         <Typography>购物车为空</Typography>
                     ) : (
-                        <List>
-                            {cart.map((item, index) => (
-                                <ListItem key={index}>
+                        <>
+                            <List>
+                                {cart.map((item, index) => (
+                                    <ListItem key={index}>
+                                        <ListItemText
+                                            primary={item.product.name}
+                                            secondary={`¥${item.product.price.toFixed(2)} × ${item.quantity}`}
+                                        />
+                                        <IconButton onClick={() => removeFromCart(item.product.productID)}>
+                                            <Remove />
+                                        </IconButton>
+                                        <Typography sx={{ mx: 1 }}>{item.quantity}</Typography>
+                                        <IconButton onClick={() => addToCart(item.product)}>
+                                            <Add />
+                                        </IconButton>
+                                    </ListItem>
+                                ))}
+                                <Divider />
+                                <ListItem>
                                     <ListItemText
-                                        primary={item.product.name}
-                                        secondary={`¥${item.product.price.toFixed(2)} × ${item.quantity}`}
+                                        primary={<Typography variant="h6">总计: ¥{getTotalPrice().toFixed(2)}</Typography>}
                                     />
-                                    <IconButton onClick={() => removeFromCart(item.product.productID)}>
-                                        <Remove />
-                                    </IconButton>
-                                    <Typography sx={{ mx: 1 }}>{item.quantity}</Typography>
-                                    <IconButton onClick={() => addToCart(item.product)}>
-                                        <Add />
-                                    </IconButton>
                                 </ListItem>
-                            ))}
-                            <Divider />
-                            <ListItem>
-                                <ListItemText
-                                    primary={<Typography variant="h6">总计: ¥{getTotalPrice().toFixed(2)}</Typography>}
-                                />
-                            </ListItem>
-                        </List>
+                            </List>
+
+                            {/* 配送地址输入 */}
+                            <TextField
+                                fullWidth
+                                label="配送地址"
+                                variant="outlined"
+                                value={deliveryAddress}
+                                onChange={(e) => setDeliveryAddress(e.target.value)}
+                                placeholder="请输入详细的配送地址"
+                                sx={{ mt: 2 }}
+                                multiline
+                                rows={2}
+                                required
+                            />
+                        </>
                     )}
                 </DialogContent>
                 <DialogActions>
