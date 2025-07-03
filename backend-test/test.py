@@ -479,6 +479,34 @@ def test_merchant_add_product_with_negative_price_should_fail():
 
     print("✅ 负价格添加商品失败（预期行为）")
 
+def test_merchant_add_duplicate_product_should_fail():
+    # 1. 注册一个商家
+    merchant = register_user(user_type=MERCHANT, address="上海市南京东路1号")
+    name = merchant["name"]
+    password = merchant["password"]
+
+    # 2. 登录获取 token
+    login_response = call_api(USER_SERVICE, "UserLogin", name=name, password=password)
+    assert login_response.status_code == 200
+    token = login_response.json()
+    assert isinstance(token, str) and len(token) > 0
+
+    # 3. 添加第一个商品
+    product_name = "招牌奶茶"
+    product_price = 15.9
+    product_description = "本店特色饮品，每日现做"
+
+    response = add_product(token, product_name, product_price, product_description)
+    assert response.status_code == 200 and response.json() == "Success"
+
+    # 4. 再次尝试添加相同名称的商品
+    duplicate_response = add_product(token, product_name, product_price, product_description)
+    assert duplicate_response.status_code == 200
+    result = duplicate_response.json()
+    assert result == "Failure", f"Expected 'Failure', got {result}"
+
+    print("✅ 同一商家添加重名商品失败，符合预期")
+
 def fetch_products_by_merchant_id(merchant_id: str):
     response = call_api(PRODUCT_SERVICE, "FetchProductsByMerchantIDMessage", merchantID=merchant_id)
     return response

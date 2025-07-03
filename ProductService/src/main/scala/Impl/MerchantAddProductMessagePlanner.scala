@@ -50,15 +50,23 @@ case class MerchantAddProductMessagePlanner(
       - <- IO(logger.info(s"[Step 1.5] 验证产品是否合理,name=${name}, price=${price}, description=${description} "))
       - <- validateProductInfo(name, price)
 
-      // Step 2: Generate unique product ID
-      _ <- IO(logger.info(s"[Step 2] 开始生成商品唯一编号"))
-      productID <- IO(generateProductID())
-      _ <- IO(logger.info(s"[Step 2] 成功生成商品唯一编号：productID=${productID}"))
+      // Step 2: Check if product name already exists for this merchant
+      _ <- IO(logger.info(s"[Step 2] 检查该商家是否已存在同名商品，name=${name}, merchantID=${merchantInfo.userID}"))
+      exists <- checkProductNameExists(merchantInfo.userID, name)
+      - <- if (exists) {
+        val errorMessage = s"[Step 2] 商品名称 ${name} 已存在，不能重复添加"
+        IO(logger.error(errorMessage)) *> IO.raiseError(new IllegalArgumentException(errorMessage))
+      } else IO.unit
 
-      // Step 3: Insert product into ProductTable
-      _ <- IO(logger.info(s"[Step 3] 准备插入商品信息到 ProductTable：productID=${productID}, merchantID=${merchantInfo.userID}, name=${name}, price=${price}, description=${description}"))
+      // Step 3: Generate unique product ID
+      _ <- IO(logger.info(s"[Step 3] 开始生成商品唯一编号"))
+      productID <- IO(generateProductID())
+      _ <- IO(logger.info(s"[Step 3] 成功生成商品唯一编号：productID=${productID}"))
+
+      // Step 4: Insert product into ProductTable
+      _ <- IO(logger.info(s"[Step 4] 准备插入商品信息到 ProductTable：productID=${productID}, merchantID=${merchantInfo.userID}, name=${name}, price=${price}, description=${description}"))
       _ <- insertProduct(productID, merchantInfo.userID, name, price, description)
-      _ <- IO(logger.info("[Step 3] 商品信息插入成功"))
+      _ <- IO(logger.info("[Step 4] 商品信息插入成功"))
 
     } yield {
       logger.info("[All Steps Done] 商品添加操作完成，状态为：Success")
@@ -68,6 +76,30 @@ case class MerchantAddProductMessagePlanner(
     IO(logger.error("[Operation Failed] 商品添加操作失败！", error)) *> IO.pure("Failure")
   }
 
+  private def checkProductNameExists(merchantID: String, name: String)(using PlanContext): IO[Boolean] = {
+    val querySQL =
+      s"""
+         |SELECT COUNT(*) AS count FROM ${schemaName}.product_table
+         |WHERE merchant_id = ? AND name = ?
+         |""".stripMargin
+
+    val parameters = List(
+      SqlParameter("String", merchantID),
+      SqlParameter("String", name)
+    )
+
+    readDBJson(querySQL, parameters).map { json =>
+      val count = (json \\ "count")
+        .headOption
+        .flatMap(_.as[Long].toOption)
+        .getOrElse(0L)
+      count > 0
+    }.handleErrorWith { error =>
+      val errorMessage = s"[Step 2] 查询商品名称是否重复失败：${error.getMessage}"
+      IO(logger.error(errorMessage, error)) *> IO.pure(false) // 查询失败时允许插入（安全策略可自定义）
+    }
+  }
+  
   private def validateMerchantIdentity(merchantToken: String)(using PlanContext): IO[UserInfo] = {
     GetUserInfoByToken(merchantToken).send.flatMap { userInfo =>
       if (userInfo.userType == UserType.Merchant) {
